@@ -28,13 +28,20 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
             !item.IsCorrupted &&
             _allModifiers.GetRollableExplicits(item).Count > 0;
 
+        // 4, 5, 6 mods respectively
+        private static readonly int[] ChaosChances = new[] { 650, 275, 75 };
+
         /// <inheritdoc />
         public void Apply(Item item)
         {
-            // 4, 5, 6 mods respectively
-            var chaosChances = new[] { 650, 275, 75 };
-            var rand = _randomizer.Next(1, chaosChances.Sum());
-            var mods = rand < chaosChances[0] ? 4 : (rand < chaosChances[0] + chaosChances[1] ? 5 : 6);
+            var rand = _randomizer.Next(1, 1000);
+            
+            var mods = 4;
+            
+            if (rand > ChaosChances[0] + ChaosChances[1])
+                mods = 6;
+            else if (rand > ChaosChances[0])
+                mods = 5;
 
             item.Reset();
             item.Rarity = ItemRarity.Rare;

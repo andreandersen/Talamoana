@@ -10,6 +10,8 @@ namespace Talamoana.Domain.Core.Modifiers
 {
     public static class ModifierExtensions
     {
+        private static readonly IRandomizer Randomizer = new PseudoRandom();
+
         /// <summary>
         ///     Materializes a Modifier with values, which is used on materialized items.
         /// </summary>
@@ -34,8 +36,26 @@ namespace Talamoana.Domain.Core.Modifiers
 
         private static int GetSpawnWeightImpl(this Item item, IModifier modifier)
         {
-            var selectedTag = modifier.SpawnWeights
-                .FirstOrDefault(c => item.Tags.Contains(c.TagId));
+            TagWeight selectedTag = null;
+            for (var index = 0; index < modifier.SpawnWeights.Count; index++)
+            {
+                var c = modifier.SpawnWeights[index];
+                var any = false;
+                for (var qq = 0; qq < item.Tags.Count; qq++)
+                {
+                    var q = item.Tags[qq];
+                    if (c.TagId == q)
+                    {
+                        any = true;
+                        break;
+                    }
+                }
+                if (any)
+                {
+                    selectedTag = c;
+                    break;
+                }
+            }
 
             return selectedTag?.Weight ?? 0;
 
@@ -45,15 +65,13 @@ namespace Talamoana.Domain.Core.Modifiers
             //return Convert.ToInt32((selectedTag?.Weight ?? 0) * factor);
         }
 
-        private static readonly IRandomizer Randomizer = new PseudoRandom();
-
         public static int Count(this IEnumerable<IMaterializedModifier> modifiers, GenerationType genType) =>
             modifiers.Count(c => c.Modifier.GenerationType == genType);
 
         /// <summary>
-        /// This is used to find rollable mods which is used to roll crafting orbs. It will
-        /// assume that the modifiers required are either prefix/suffix and item domain, with a
-        /// spawn weight that is higher than 0.
+        ///     This is used to find rollable mods which is used to roll crafting orbs. It will
+        ///     assume that the modifiers required are either prefix/suffix and item domain, with a
+        ///     spawn weight that is higher than 0.
         /// </summary>
         /// <param name="item"></param>
         /// <param name="allModifiers"></param>
@@ -70,35 +88,42 @@ namespace Talamoana.Domain.Core.Modifiers
 
             var existingModifierGroups = item.Explicits.Select(c => c.Modifier.Group).ToList();
 
-            var result =
-                from mod in allModifiers
-                where mod.Domain == Domain.Item &&
-                      (mod.GenerationType == GenerationType.Prefix ||
-                       mod.GenerationType == GenerationType.Suffix) &&
-                      (mod.GenerationType != GenerationType.Prefix || canHaveMorePrefixes) &&
-                      (mod.GenerationType != GenerationType.Suffix || canHaveMoreSuffixes) &&
-                       mod.GetSpawnWeight(item) > 0 &&
-                      !existingModifierGroups.Contains(mod.Group) &&
-                       mod.RequiredLevel <= item.ItemLevel
-                select mod;
+            var result = allModifiers
+                .Where(mod => mod.Domain == Domain.Item &&
+                              (mod.GenerationType == GenerationType.Prefix ||
+                               mod.GenerationType == GenerationType.Suffix) &&
+                              (mod.GenerationType != GenerationType.Prefix || canHaveMorePrefixes) &&
+                              (mod.GenerationType != GenerationType.Suffix || canHaveMoreSuffixes) &&
+                              !existingModifierGroups.Contains(mod.Group) && mod.RequiredLevel <= item.ItemLevel &&
+                              mod.GetSpawnWeight(item) > 0).ToList();
 
-            return result.ToList();
+            return result;
         }
 
-        public static IMaterializedModifier RandomizeNewModifier(this Item item, IReadOnlyList<IModifier> modifiersToUse)
+        public static IMaterializedModifier RandomizeNewModifier(this Item item,
+            IReadOnlyList<IModifier> modifiersToUse)
         {
-            var totalWeight = modifiersToUse.Sum(p => p.GetSpawnWeight(item));
-            var randomCumulativeWeight = Randomizer.Next(1, totalWeight);
-            
-            var i = 0d;
-            var pickedModifier = modifiersToUse.SkipWhile(v =>
+            var totalWeight = 0;
+            for (var index = 0; index < modifiersToUse.Count; index++)
             {
-                i += v.GetSpawnWeight(item);
-                return i < randomCumulativeWeight;
-            }).First();
+                var p = modifiersToUse[index];
+                totalWeight += GetSpawnWeight(p, item);
+            }
+            
+            var rand = Randomizer.Next(1, totalWeight);
+            
+            int sum = 0;
+            for (int j = 0; j < modifiersToUse.Count; j++)
+            {
+                sum += modifiersToUse[j].GetSpawnWeight(item);
+                if (sum >= rand)
+                {
+                    var values = modifiersToUse[j].Stats.ToDictionary(p => p.Stat, p => Randomizer.Next(p.Min, p.Max));
+                    return modifiersToUse[j].Materialize(values);
+                }
+            }
 
-            var values = pickedModifier.Stats.ToDictionary(p => p.Stat, p => Randomizer.Next(p.Min, p.Max));
-            return pickedModifier.Materialize(values);
+            throw new IndexOutOfRangeException();
         }
     }
 }

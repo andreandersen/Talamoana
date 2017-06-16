@@ -17,8 +17,8 @@ namespace Talamoana.Domain.Core.Items
     public class Item
     {
         // Explicit modifiers applied to this particular item
-        private readonly List<IMaterializedModifier> _explicits;
-        private readonly List<IMaterializedModifier> _implicits;
+        private List<IMaterializedModifier> _explicits;
+        private List<IMaterializedModifier> _implicits;
 
         public Item(IBaseItem baseItem, int itemLevel, ItemRarity rarity = ItemRarity.Normal)
         {
@@ -31,6 +31,8 @@ namespace Talamoana.Domain.Core.Items
 
             _explicits = new List<IMaterializedModifier>();
             _implicits = baseItem.Implicits.Select(p => p.Materialize(p.Stats.ToDictionary(e => e.Stat, e => Convert.ToInt32((e.Min + e.Max) / 2d)))).Cast<IMaterializedModifier>().ToList();
+
+            Tags = new List<string>(Base.Tags);
         }
 
         public Item(IBaseItem baseItem, int itemLevel, ItemRarity rarity, IEnumerable<IMaterializedModifier> implicits,
@@ -106,8 +108,9 @@ namespace Talamoana.Domain.Core.Items
         /// <summary>
         ///     All the tags that this item has based on the modifiers + base item tags
         /// </summary>
-        public IEnumerable<string> Tags =>
-            Explicits.SelectMany(c => c.Modifier.AddsTags).Concat(Base.Tags);
+
+
+        public List<string> Tags { get; private set; }
 
         public void Reset()
         {
@@ -118,7 +121,11 @@ namespace Talamoana.Domain.Core.Items
             IsCorrupted = false;
         }
 
-        public void ClearExplicitModifiers() => _explicits.Clear();
+        public void ClearExplicitModifiers()
+        {
+            _explicits = new List<IMaterializedModifier>();
+            //Tags = new List<string>(Base.Tags);
+        } 
 
         public void AddExplicitModifier(IMaterializedModifier modifier)
         {
@@ -133,6 +140,7 @@ namespace Talamoana.Domain.Core.Items
                 throw new ModifierAlreadyInItemException();
 
             _explicits.Add(modifier);
+            //_tags.InsertRange(0, modifier.Modifier.AddsTags);
         }
 
         public void ReplaceImplicitModifier(IMaterializedModifier modifier)

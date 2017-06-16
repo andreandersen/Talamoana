@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Talamoana.Domain.Core.Items.Crafting.Actions;
@@ -13,7 +14,9 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
     {
         private readonly Dictionary<Type, IRandomCraftingAction> _actions;
         private readonly IReadOnlyList<IModifier> _allMods;
-
+        private int _totalRolls = 0;
+        private Stopwatch _stopwatch;
+        
         public AltCraftingStrategy(IReadOnlyList<IModifier> allMods, IRandomizer randomizer = null)
         {
             var random = randomizer ?? new PseudoRandom();
@@ -34,12 +37,12 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
 
             if (!isPossible)
                 throw new InvalidOperationException("Can't do it");
-
+            _stopwatch = Stopwatch.StartNew();
             var cost = Util.CreateCostDictionary(_actions);
             PrepItem(item, cost);
             AttemptReachGoal(item, cost, desiredModGroupValues, ct);
 
-            //PrintStatus(item, cost, desiredModGroupValues, true);
+            PrintStatus(item, cost, desiredModGroupValues, true);
             return cost;
         }
 
@@ -84,10 +87,11 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
 
             void Roll<T>()
             {
+                _totalRolls++;
                 _actions.Apply<T>(item);
                 cost.Increment<T>();
 
-                //PrintStatus(item, cost, desiredModGroupValues);
+                PrintStatus(item, cost, desiredModGroupValues);
             }
         }
 
@@ -107,12 +111,13 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
         private void PrintStatus(Item item, Dictionary<Type, int> cost,
             IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues, bool force = false)
         {
-            if (++_i % 1000 != 0 && !force) return;
+            return;
+            if (++_i % 100 != 0 && !force) return;
             _i = 0;
 
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
-            cost.ToList().ForEach(c => Console.WriteLine($"{c.Key.Name,-30} {c.Value}".PadRight(Console.WindowWidth - 4)));
+            cost.ToList().ForEach(c => Console.WriteLine($"{c.Key.Name,-30} {c.Value:###,###}".PadRight(Console.WindowWidth - 4)));
 
             Console.SetCursorPosition(0, 10);
 
@@ -134,6 +139,9 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
                 select $"{c1,-40} {c2}".PadRight(Console.WindowWidth - 1);
 
             Console.WriteLine(string.Join(Environment.NewLine, p));
+
+            Console.WriteLine(
+                $"\r\n\r\nRolls per second: {(_totalRolls / _stopwatch.Elapsed.TotalSeconds),-10:###,###}");
         }
     }
 }

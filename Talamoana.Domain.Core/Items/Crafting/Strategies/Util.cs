@@ -9,7 +9,7 @@ using Talamoana.Domain.Core.Stats;
 namespace Talamoana.Domain.Core.Items.Crafting.Strategies
 {
     public static class Util
-    {
+    {       
         public static bool AllDesiredSatisfied(this Item item,
             IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues) =>
             desiredModGroupValues.All(d =>
@@ -58,5 +58,13 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
                 new TransmutationOrb(random, allMods),
                 new ScourOrb()
             }.ToDictionary(p => p.GetType(), p => p);
+    }
+}
+
+namespace Talamoana
+{
+    public static class Util
+    {
+        public static object ConsoleLock = new object();
     }
 }
