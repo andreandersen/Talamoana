@@ -82,11 +82,11 @@ namespace Talamoana.Playground
 
             for (int i = 0; i < concurrency; i++)
             {
-                var t = new Thread(() =>
+                var t = Task.Run(() =>
                 {
                     while (queue.TryDequeue(out var _))
                     {
-                        var result = new ChaosSpamStrategy(allMods, new CryptoRandom()).Execute(
+                        var result = new AltCraftingStrategy(allMods, new CryptoRandom()).Execute(
                             new Item(baseItem, 84) { Rarity = ItemRarity.Magic },
                             desiredModifiers, CancellationToken.None);
 
@@ -94,9 +94,9 @@ namespace Talamoana.Playground
                     }
                 });
 
-                t.Start();
+                tasks[i] = t;
             }
-
+            
             new Thread(() =>
             {
                 while (true)
@@ -106,6 +106,7 @@ namespace Talamoana.Playground
                 }
             }).Start();
 
+            Task.WaitAll(tasks);
         }
 
         private static void PrintUpdate(ConcurrentQueue<int> queue, ConcurrentBag<IReadOnlyDictionary<Type, int>> costResults, Task[] tasks)
