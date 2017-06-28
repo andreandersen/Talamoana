@@ -5,15 +5,15 @@ namespace Talamoana.Domain.Core.Stats
 {
     public class StatsIndex
     {
-        private readonly Dictionary<string, IStat> _dict;
+        private readonly Dictionary<string, Stat> _dict;
 
-        public StatsIndex(IStatsDataReader reader)
+        public StatsIndex(StatsDataReader reader)
         {
             _dict = reader.Read()
                 .ToDictionary(p => p.Id, p => p);
         }
 
-        public IStat this[string index]
+        public Stat this[string index]
         {
             get
             {

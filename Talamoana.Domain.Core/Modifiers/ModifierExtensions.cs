@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Talamoana.Domain.Core.Items;
-using Talamoana.Domain.Core.Modifiers.Exceptions;
 using Talamoana.Domain.Core.Shared;
 using Talamoana.Domain.Core.Stats;
 
@@ -10,7 +10,7 @@ namespace Talamoana.Domain.Core.Modifiers
 {
     public static class ModifierExtensions
     {
-        private static readonly IRandomizer Randomizer = new PseudoRandom();
+        private static readonly IRandomizer Randomizer = new CryptoRandom();
 
         /// <summary>
         ///     Materializes a Modifier with values, which is used on materialized items.
@@ -25,48 +25,46 @@ namespace Talamoana.Domain.Core.Modifiers
         ///     <paramref name="modifier" /> stats
         /// </exception>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="modifier" /> or <paramref name="values" /> is null</exception>
-        public static MaterializedModifier Materialize(this IModifier modifier, Dictionary<IStat, int> values) =>
+        public static MaterializedModifier Materialize(this Modifier modifier, Dictionary<Stat, int> values) =>
             new MaterializedModifier(modifier, values);
 
-        public static int GetSpawnWeight(this IModifier modifier, Item item) =>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetSpawnWeight(this Modifier modifier, Item item) =>
             GetSpawnWeightImpl(item, modifier);
 
-        public static int GetSpawnWeight(this Item item, IModifier modifier) =>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetSpawnWeight(this Item item, Modifier modifier) =>
             GetSpawnWeightImpl(item, modifier);
 
-        private static int GetSpawnWeightImpl(this Item item, IModifier modifier)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetSpawnWeightImpl(this Item item, Modifier modifier)
         {
-            TagWeight selectedTag = null;
-            for (var index = 0; index < modifier.SpawnWeights.Count; index++)
+            for (int i = 0; i < modifier.SpawnWeights.Length; i++)
             {
-                var c = modifier.SpawnWeights[index];
-                var any = false;
-                for (var qq = 0; qq < item.Tags.Count; qq++)
-                {
-                    var q = item.Tags[qq];
-                    if (c.TagId == q)
-                    {
-                        any = true;
-                        break;
-                    }
-                }
-                if (any)
-                {
-                    selectedTag = c;
-                    break;
-                }
+                var modSpawn = modifier.SpawnWeights[i];
+                for (int j = item.Tags.Count - 1; j > -1; j--)
+                    if (item.Tags[j] == modSpawn.EphemeralIdentifier)
+                        return modSpawn.Weight;
             }
-
-            return selectedTag?.Weight ?? 0;
-
-            //var factor = modifier.GenerationWeights
-            //    .FirstOrDefault(p => item.Tags.Contains(p.TagId))?.Weight / 100d ?? 1;
-
-            //return Convert.ToInt32((selectedTag?.Weight ?? 0) * factor);
+            return 0;
         }
 
-        public static int Count(this IEnumerable<IMaterializedModifier> modifiers, GenerationType genType) =>
-            modifiers.Count(c => c.Modifier.GenerationType == genType);
+        //var factor = modifier.GenerationWeights
+        //    .FirstOrDefault(p => item.Tags.Contains(p.TagId))?.Weight / 100d ?? 1;
+
+        //return Convert.ToInt32((selectedTag?.Weight ?? 0) * factor);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Count(this List<MaterializedModifier> modifiers, GenerationType genType)
+        {
+            int count = 0;
+            for (var index = modifiers.Count - 1; index >= 0; index--)
+            {
+                var c = modifiers[index];
+                if (c.Modifier.GenerationType == genType) count++;
+            }
+            return count;
+        }
 
         /// <summary>
         ///     This is used to find rollable mods which is used to roll crafting orbs. It will
@@ -76,61 +74,48 @@ namespace Talamoana.Domain.Core.Modifiers
         /// <param name="item"></param>
         /// <param name="allModifiers"></param>
         /// <returns></returns>
-        public static IReadOnlyList<IModifier> GetRollableExplicits(this IEnumerable<IModifier> allModifiers, Item item)
+        public static List<Modifier> GetRollableExplicits(this List<Modifier> allModifiers, Item item)
         {
             var maxAffixCount = item.Rarity == ItemRarity.Rare ? 3 : (item.Rarity == ItemRarity.Magic ? 1 : 0);
 
-            var prefixCount = item.Explicits.Count(GenerationType.Prefix);
-            var suffixCount = item.Explicits.Count(GenerationType.Suffix);
+            var canHaveMorePrefixes = item.Explicits.Count(GenerationType.Prefix) < maxAffixCount;
+            var canHaveMoreSuffixes = item.Explicits.Count(GenerationType.Suffix) < maxAffixCount;
 
-            var canHaveMorePrefixes = prefixCount < maxAffixCount;
-            var canHaveMoreSuffixes = suffixCount < maxAffixCount;
-
-            var existingModifierGroups = item.Explicits.Select(c => c.Modifier.Group).ToList();
+            var existingModifierGroups = item.Explicits.Select(c => c.Modifier.EphemeralGroupId).ToList();
 
             var result = allModifiers
                 .Where(mod => mod.Domain == Domain.Item &&
-                              (mod.GenerationType == GenerationType.Prefix ||
-                               mod.GenerationType == GenerationType.Suffix) &&
-                              (mod.GenerationType != GenerationType.Prefix || canHaveMorePrefixes) &&
-                              (mod.GenerationType != GenerationType.Suffix || canHaveMoreSuffixes) &&
-                              !existingModifierGroups.Contains(mod.Group) && mod.RequiredLevel <= item.ItemLevel &&
-                              mod.GetSpawnWeight(item) > 0).ToList();
+                              ((mod.GenerationType == GenerationType.Prefix && canHaveMorePrefixes) ||
+                              (mod.GenerationType == GenerationType.Suffix && canHaveMoreSuffixes)) &&
+                              !existingModifierGroups.Contains(mod.EphemeralGroupId) &&
+                              mod.RequiredLevel <= item.ItemLevel
+                              && mod.GetSpawnWeight(item) > 0);
 
-            return result;
+            return result.ToList();
         }
 
-        public static IMaterializedModifier RandomizeNewModifier(this Item item,
-            IReadOnlyList<IModifier> modifiersToUse)
+        public static MaterializedModifier RandomizeNewModifier(this Item item,
+            List<Modifier> modifiersToUse)
         {
             var totalWeight = 0;
-            for (var index = 0; index < modifiersToUse.Count; index++)
+            for (var index = modifiersToUse.Count - 1; index >= 0; index--)
             {
                 var p = modifiersToUse[index];
                 totalWeight += GetSpawnWeight(p, item);
             }
-            
+
             var rand = Randomizer.Next(1, totalWeight);
-            
+
             int sum = 0;
-            for (int j = 0; j < modifiersToUse.Count; j++)
+            for (int j = modifiersToUse.Count - 1; j >= 0; j--)
             {
                 sum += modifiersToUse[j].GetSpawnWeight(item);
-                if (sum >= rand)
-                {
-                    var values = modifiersToUse[j].Stats.ToDictionary(p => p.Stat, p => Randomizer.Next(p.Min, p.Max));
-                    return modifiersToUse[j].Materialize(values);
-                }
+                if (sum < rand) continue;
+                var values = modifiersToUse[j].Stats.ToDictionary(p => p.Stat, p => Randomizer.Next(p.Min, p.Max));
+                return modifiersToUse[j].Materialize(values);
             }
 
             throw new IndexOutOfRangeException();
         }
     }
 }
-
-//P attack_maximum_added_physical_damage 13-15
-//S base_resist_all_elements_% 15-16
-//P base_maximum_life 70-79
-//S attack_speed_+% 5-7
-//S base_lightning_damage_resistance_% 40
-//P base_item_found_rarity_+% 25

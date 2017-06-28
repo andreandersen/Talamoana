@@ -8,7 +8,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
     public class ChaosOrb : IRandomCraftingAction
     {
         private readonly IRandomizer _randomizer;
-        private readonly IReadOnlyList<IModifier> _allModifiers;
+        private readonly List<Modifier> _allModifiers;
 
         /// <inheritdoc />
         public string Category => "Orb Crafting";
@@ -16,7 +16,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
         /// <inheritdoc />
         public string Name => "Chaos Orb";
 
-        public ChaosOrb(IRandomizer randomizer, IReadOnlyList<IModifier> allModifiers)
+        public ChaosOrb(IRandomizer randomizer, List<Modifier> allModifiers)
         {
             _randomizer = randomizer;
             _allModifiers = allModifiers;
@@ -37,7 +37,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
             var rand = _randomizer.Next(1, 1000);
             
             var mods = 4;
-            
+
             if (rand > ChaosChances[0] + ChaosChances[1])
                 mods = 6;
             else if (rand > ChaosChances[0])

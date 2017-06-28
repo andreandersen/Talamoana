@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿using Jil;
+using System.Collections.Generic;
 
 namespace Talamoana.Domain.Core.Stash
 {
     public class StashResponse
     {
-        [JsonProperty("next_change_id")]
+        [JilDirective("next_change_id")]
         public string NextChangeId { get; private set; }
 
-        [JsonProperty("stashes")]
-        public Stash[] Stashes { get; private set; }
+        [JilDirective("stashes")]
+        public List<Stash> Stashes { get; private set; }
     }
 }

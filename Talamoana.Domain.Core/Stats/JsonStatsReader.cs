@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Talamoana.Domain.Core.Stats
 {
-    public class JsonStatsReader : IStatsDataReader
+    public class JsonStatsReader : StatsDataReader
     {
         private readonly string _file;
 
@@ -14,7 +14,7 @@ namespace Talamoana.Domain.Core.Stats
             _file = sourceFile;
         }
 
-        public IEnumerable<IStat> Read()
+        public IEnumerable<Stat> Read()
         {
             var json = File.ReadAllText(_file);
             var objects = JsonConvert.DeserializeObject<Dictionary<string, StatObject>>(json);

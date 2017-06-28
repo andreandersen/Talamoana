@@ -9,6 +9,6 @@ namespace Talamoana.Domain.Core.Translations
     /// </summary>
     public interface ITranslationReader
     {
-        IEnumerable<Translation> Read();
+        List<Translation> Read();
     }
 }

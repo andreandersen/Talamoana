@@ -1,19 +1,19 @@
-﻿using Newtonsoft.Json;
+﻿using Jil;
 
 namespace Talamoana.Domain.Core.Stash
 {
     public class AdditionalProperty
     {
-        [JsonProperty("name")]
+        [JilDirective("name")]
         public string Name { get; set; }
 
-        [JsonProperty("values")]
+        [JilDirective("values")]
         public object[][] Values { get; set; }
 
-        [JsonProperty("displayMode")]
+        [JilDirective("displayMode")]
         public int DisplayMode { get; set; }
 
-        [JsonProperty("progress")]
+        [JilDirective("progress")]
         public float Progress { get; set; }
     }
 }

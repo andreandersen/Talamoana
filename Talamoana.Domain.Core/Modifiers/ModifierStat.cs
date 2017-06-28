@@ -8,14 +8,14 @@ namespace Talamoana.Domain.Core.Modifiers
 {
     public class ModifierStat
     {
-        public ModifierStat(IStat stat, int min, int max)
+        public ModifierStat(Stat stat, int min, int max)
         {
             Stat = stat;
             Min = min;
             Max = max;
         }
 
-        public IStat Stat { get; }
+        public Stat Stat { get; }
         public int Min { get; }
         public int Max { get; }
     }

@@ -6,17 +6,17 @@ namespace Talamoana.Domain.Core.Translations
     public class TranslationString
     {
         public string Translation { get; }
-        public IReadOnlyList<TranslationCondition> Conditions { get; }
-        public IReadOnlyList<string> Format { get; }
-        public IReadOnlyList<IReadOnlyList<string>> Handlers { get; }
+        public List<TranslationCondition> Conditions { get; }
+        public List<string> Format { get; }
+        public List<List<string>> Handlers { get; }
 
-        public TranslationString(string translation, IEnumerable<TranslationCondition> condition,
-            IEnumerable<string> format, IEnumerable<IEnumerable<string>> handlers)
+        public TranslationString(string translation, List<TranslationCondition> condition,
+            List<string> format, List<List<string>> handlers)
         {
             Translation = translation;
-            Conditions = condition.ToList().AsReadOnly();
-            Format = format.ToList().AsReadOnly();
-            Handlers = handlers.Select(h => h.ToList().AsReadOnly()).ToList().AsReadOnly();
+            Conditions = condition;
+            Format = format;
+            Handlers = handlers;
         }
     }
 }

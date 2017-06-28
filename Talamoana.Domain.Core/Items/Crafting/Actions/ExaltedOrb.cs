@@ -7,7 +7,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
     public class ExaltedOrb : IRandomCraftingAction
     {
         private readonly IRandomizer _randomizer;
-        private readonly IReadOnlyList<IModifier> _allModifiers;
+        private readonly List<Modifier> _allModifiers;
 
         /// <inheritdoc />
         public string Category => "Orb Crafting";
@@ -15,7 +15,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
         /// <inheritdoc />
         public string Name => "Exalted Orb";
 
-        public ExaltedOrb(IRandomizer randomizer, IReadOnlyList<IModifier> allModifiers)
+        public ExaltedOrb(IRandomizer randomizer, List<Modifier> allModifiers)
         {
             _randomizer = randomizer;
             _allModifiers = allModifiers;

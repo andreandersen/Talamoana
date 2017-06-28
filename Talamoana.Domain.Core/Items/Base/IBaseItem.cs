@@ -10,12 +10,13 @@ namespace Talamoana.Domain.Core.Items.Base
         int DropLevel { get; }
         int Height { get; }
         string Id { get; }
-        IReadOnlyList<IModifier> Implicits { get; }
+        List<Modifier> Implicits { get; }
         IItemClass ItemClass { get; }
         string Name { get; }
-        IReadOnlyList<string> Tags { get; }
+        List<string> Tags { get; }
         IWeaponStats WeaponStats { get; }
         IShieldStats ShieldStats { get; }
         int Width { get; }
+        string ImageUrl { get; }
     }
 }

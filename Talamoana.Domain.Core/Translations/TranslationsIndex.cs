@@ -1,44 +1,80 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using Murmur;
+using Talamoana.Domain.Core.Modifiers;
 
 namespace Talamoana.Domain.Core.Translations
 {
     public class TranslationsIndex
     {
-        private static readonly HashAlgorithm Hash = MurmurHash.Create128(managed: false);
-        
-        private readonly ReadOnlyDictionary<byte[], Translation> _byHash;
-        private readonly ReadOnlyDictionary<byte[], IReadOnlyList<Translation>> _byIdHash;
-        private readonly ReadOnlyDictionary<byte[], IReadOnlyList<Translation>> _byTranslation;
+        public List<Translation> Translations { get; }
 
         public TranslationsIndex(ITranslationReader reader)
         {
-            var translations = reader.Read().ToList();
-
-            _byHash = new ReadOnlyDictionary<byte[], Translation>(
-                translations.ToDictionary(HashStatIds, p => p));
-
-            _byIdHash = new ReadOnlyDictionary<byte[], IReadOnlyList<Translation>>(translations
-                .SelectMany(p => p.StatIds.Select(e => new KeyValuePair<byte[], Translation>(HashString(e), p)))
-                .GroupBy(p => p.Key)
-                .ToDictionary(p => p.Key, p => (IReadOnlyList<Translation>) p.Select(q => q.Value).ToList()));
-
-            _byTranslation = new ReadOnlyDictionary<byte[], IReadOnlyList<Translation>>(translations
-                .Where(p => p.Translations.All(t => !string.IsNullOrEmpty(t.Translation)))
-                .SelectMany(p => p.Translations.Select(
-                    e => new KeyValuePair<byte[], Translation>(HashString(e.Translation), p)))
-                .GroupBy(p => p.Key)
-                .ToDictionary(p => p.Key, p => (IReadOnlyList<Translation>) p.Select(q => q.Value).ToList()));
+            Translations = reader.Read().ToList();
         }
 
-        public static byte[] HashStatIds(Translation item) => 
-            HashString(string.Join("", item.StatIds.OrderBy(p => p)));
+        public IEnumerable<TranslatedStat> TranslateModifier(Modifier modifier)
+        {
+            var stats = modifier.Stats.ToList();
 
-        public static byte[] HashString(string item) => 
-            Hash.ComputeHash(Encoding.UTF8.GetBytes(item));
+            while (stats.Count > 0)
+            {
+                var stat = stats[0];
+
+                var found = Translations.Where(c => c.StatIds.Contains(stat.Stat.Id)).ToList();
+                if (found.Count > 1)
+                    throw new Exception("More than one found, not sure what to do");
+
+                if (found.Count == 0)
+                {
+                    stats.Remove(stat);
+                    continue;
+                }
+
+                var firstFound = found.First();
+
+                var translationString = firstFound.Translations.Where(c => c.Conditions.All(e => ConditionSatisfiesRange(e, stat))).First();
+
+                var statsInTranslation = modifier.Stats.Where(c => firstFound.StatIds.Contains(c.Stat.Id)).ToList();
+
+                var str = Convert(translationString, statsInTranslation);
+
+
+                stats.RemoveAll(c => firstFound.StatIds.Contains(c.Stat.Id));
+
+                if (string.IsNullOrEmpty(str))
+                    continue;
+                    
+                yield return new TranslatedStat(stat.Stat, str, firstFound, stat.Min, stat.Max);
+            }
+        }
+
+        public static bool ConditionSatisfiesRange(TranslationCondition condition, ModifierStat modifierStat) =>
+            (!condition.Max.HasValue || condition.Max >= modifierStat.Max) &&
+            (!condition.Min.HasValue || condition.Min <= modifierStat.Min);
+
+        public static string Convert(TranslationString translationString, List<ModifierStat> ranges)
+        {
+            var str = translationString.Translation;
+            for (int i = 0; i < translationString.Format.Count; i++)
+            {
+                decimal min = ranges[i].Min;
+                decimal max = ranges[i].Max;
+
+                translationString.Handlers[i].ForEach(h =>
+                {
+                    min = TranslationHandlers.Handlers[h].Handle(min);
+                    max = TranslationHandlers.Handlers[h].Handle(max);
+                });
+
+                if (ranges[i].Max != ranges[i].Min)
+                    str = str.Replace($"{{{i}}}", $"({min}-{max})");
+                else
+                    str = str.Replace($"{{{i}}}", max.ToString());
+            }
+            return str;
+        }
+
     }
 }

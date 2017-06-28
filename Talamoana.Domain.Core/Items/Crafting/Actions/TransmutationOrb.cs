@@ -7,9 +7,9 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
     public class TransmutationOrb : IRandomCraftingAction
     {
         private readonly IRandomizer _randomizer;
-        private readonly IReadOnlyList<IModifier> _allModifiers;
+        private readonly List<Modifier> _allModifiers;
 
-        public TransmutationOrb(IRandomizer randomizer, IReadOnlyList<IModifier> allModifiers)
+        public TransmutationOrb(IRandomizer randomizer, List<Modifier> allModifiers)
         {
             _randomizer = randomizer;
             _allModifiers = allModifiers;

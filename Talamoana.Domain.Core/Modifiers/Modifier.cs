@@ -5,24 +5,36 @@ using System.Linq;
 namespace Talamoana.Domain.Core.Modifiers
 {
     /// <inheritdoc />
-    public class Modifier : IModifier, IEquatable<Modifier>
+    public class Modifier : /*IModifier,*/ IEquatable<Modifier>
     {
         public Modifier(string id, string name, Domain domain, GenerationType generationType,
-            IList<ModifierStat> stats, IList<string> addsTags, bool isEssenceOnly,
-            string group, int requiredLevel, IList<TagWeight> spawnTags,
-            IList<TagWeight> generationWeights)
+            List<ModifierStat> stats, List<string> addsTags, bool isEssenceOnly,
+            string group, int requiredLevel, List<TagWeight> spawnTags,
+            List<TagWeight> generationWeights)
         {
             Id = id;
             Name = name;
             Domain = domain;
             GenerationType = generationType;
-            Stats = (IReadOnlyList<ModifierStat>) stats;
-            AddsTags = (IReadOnlyList<string>) addsTags;
+            Stats = stats;
+            AddsTags = addsTags;
             IsEssenceOnly = isEssenceOnly;
             Group = group;
             RequiredLevel = requiredLevel;
-            SpawnWeights = (IReadOnlyList<TagWeight>) spawnTags;
-            GenerationWeights = (IReadOnlyList<TagWeight>) generationWeights;
+            SpawnWeights = spawnTags.ToArray();
+            GenerationWeights = generationWeights;
+
+            EphemeralGroupId = GetGroupIdentifier(group);
+        }
+        
+        private static List<string> ObservedGroups = new List<string>();
+
+        public static short GetGroupIdentifier(string groupId)
+        {
+            int idx = ObservedGroups.IndexOf(groupId);
+            if (idx > 0) return (short)idx;
+            ObservedGroups.Add(groupId);
+            return (short)ObservedGroups.Count;
         }
 
         /// <inheritdoc />
@@ -38,32 +50,33 @@ namespace Talamoana.Domain.Core.Modifiers
         public GenerationType GenerationType { get; }
 
         /// <inheritdoc />
-        public IReadOnlyList<ModifierStat> Stats { get; }
+        public List<ModifierStat> Stats { get; }
 
         /// <inheritdoc />
-        public IReadOnlyList<string> AddsTags { get; }
+        public List<string> AddsTags { get; }
 
         /// <inheritdoc />
         public bool IsEssenceOnly { get; }
 
         /// <inheritdoc />
         public string Group { get; }
+        
+        public short EphemeralGroupId { get; }
 
         /// <inheritdoc />
         public int RequiredLevel { get; }
 
         /// <inheritdoc />
-        public IReadOnlyList<TagWeight> SpawnWeights { get; }
+        public TagWeight[] SpawnWeights { get; }
 
         /// <inheritdoc />
-        public IReadOnlyList<TagWeight> GenerationWeights { get; }
+        public List<TagWeight> GenerationWeights { get; }
 
 
         #region Equality
 
         public bool Equals(Modifier other) => string.Equals(Id, other.Id);
 
-        public bool Equals(IModifier other) => string.Equals(Id, other.Id);
 
         public override string ToString()
         {
@@ -74,7 +87,7 @@ namespace Talamoana.Domain.Core.Modifiers
         public override bool Equals(object obj)
         {
             var m = obj as Modifier;
-            return m == null || Equals(m);
+            return m != null && Equals(m);
         }
 
         public override int GetHashCode() => Id != null ? Id.GetHashCode() : 0;

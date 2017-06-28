@@ -12,9 +12,9 @@ namespace Talamoana.Domain.Core.Items
     public class JsonItemReader
     {
         private readonly string _file;
-        private readonly Dictionary<string, IModifier> _modDict;
+        private readonly Dictionary<string, Modifier> _modDict;
 
-        public JsonItemReader(IEnumerable<IModifier> mods, string sourceFile = "Data\\items.json")
+        public JsonItemReader(List<Modifier> mods, string sourceFile = "Data\\items.json")
         {
             _modDict = mods.ToDictionary(p => p.Id, p => p);
             _file = sourceFile;
@@ -40,9 +40,6 @@ namespace Talamoana.Domain.Core.Items
                     .Select(c => _modDict[c])
                     .ToList();
 
-                if (implicits.Count < ((JArray) o["implicits"]).Count)
-                    Trace.TraceWarning($"Could not find all implicits for item {item.Key}");
-
                 yield return new BaseItem
                 (
                     o["id"].ToString(),
@@ -66,7 +63,8 @@ namespace Talamoana.Domain.Core.Items
                         ? new AttributeRequirements(atr.Value<int>("dex"), atr.Value<int>("int"), atr.Value<int>("str"))
                         : null,
                     ((JArray) o["tags"]).Select(p => p.ToString()).ToList(),
-                    implicits
+                    implicits,
+                    o["visual_identity"].Value<string>("dds")
                 );
             }
         }

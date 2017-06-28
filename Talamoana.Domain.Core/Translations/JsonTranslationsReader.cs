@@ -17,24 +17,24 @@ namespace Talamoana.Domain.Core.Translations
             _file = sourceFile;
         }
 
-        public IEnumerable<Translation> Read()
+        public List<Translation> Read()
         {
             var json = File.ReadAllText(_file);
-            var objs = JsonConvert.DeserializeObject<IEnumerable<TranslationObject>>(json);
+            var objs = JsonConvert.DeserializeObject<List<TranslationObject>>(json);
 
             var items = objs.Select(o =>
             {
                 var strings = o.English.Select(t =>
                 {
                     var conditions = t.condition.Select(c =>
-                        new TranslationCondition(c.min, c.max));
-                    return new TranslationString(t.@string, conditions, t.format, t.index_handlers);
+                        new TranslationCondition(c.min, c.max)).ToList();
+                    return new TranslationString(t.@string, conditions, t.format.ToList(), t.index_handlers.Select(c => c.ToList()).ToList());
                 });
 
-                return new Translation(o.ids, strings);
+                return new Translation(o.ids.ToList(), strings.ToList());
             });
 
-            return items;
+            return items.ToList();
         }
 
         #pragma warning disable 649

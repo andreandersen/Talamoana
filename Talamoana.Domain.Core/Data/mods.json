@@ -56559,7 +56559,7 @@
       }
     ]
   },
-  "EnchantmentSiegeBallistaTotemPlacementSpeed1": {
+  "EnchantmentSiegeBallStatotemPlacementSpeed1": {
     "adds_tags": [],
     "domain": "item",
     "generation_type": "enchantment",
@@ -56588,7 +56588,7 @@
       }
     ]
   },
-  "EnchantmentSiegeBallistaTotemPlacementSpeed2": {
+  "EnchantmentSiegeBallStatotemPlacementSpeed2": {
     "adds_tags": [],
     "domain": "item",
     "generation_type": "enchantment",

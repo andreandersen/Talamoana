@@ -2,8 +2,8 @@
 
 namespace Talamoana.Domain.Core.Stats
 {
-    public interface IStatsDataReader
+    public interface StatsDataReader
     {
-        IEnumerable<IStat> Read();
+        IEnumerable<Stat> Read();
     }
 }

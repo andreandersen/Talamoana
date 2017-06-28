@@ -5,7 +5,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
 {
     public class AugmentationOrb : IRandomCraftingAction
     {
-        private readonly IReadOnlyList<IModifier> _allModifiers;
+        private readonly List<Modifier> _allModifiers;
 
         /// <inheritdoc />
         public string Category => "Orb Crafting";
@@ -13,7 +13,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Actions
         /// <inheritdoc />
         public string Name => "Augmentation Orb";
 
-        public AugmentationOrb(IReadOnlyList<IModifier> allModifiers)
+        public AugmentationOrb(List<Modifier> allModifiers)
         {
             _allModifiers = allModifiers;
         }

@@ -7,5 +7,7 @@
         int DamageMax { get; }
         int DamageMin { get; }
         int Range { get; }
+
+        decimal Dps { get; }
     }
 }

@@ -21,11 +21,13 @@ namespace Talamoana.Domain.Core.Items.Base
         public IArmourStats ArmourStats { get; }
         public IWeaponStats WeaponStats { get; }
         public IAttributeRequirements AttributeRequirements { get; }
-        public IReadOnlyList<string> Tags { get; }
-        public IReadOnlyList<IModifier> Implicits { get; }
+        public List<string> Tags { get; }
+        public List<Modifier> Implicits { get; }
+
+        public string ImageUrl { get; }
 
         public BaseItem(string id, string name, IItemClass itemClass, int dropLevel, int height, int width, IArmourStats armourStats,
-            IWeaponStats weaponStats, IShieldStats shieldStats, IAttributeRequirements attrRequirements, IEnumerable<string> tags, IEnumerable<IModifier> implicits)
+            IWeaponStats weaponStats, IShieldStats shieldStats, IAttributeRequirements attrRequirements, List<string> tags, List<Modifier> implicits, string imageUrl)
         {
             Id = id;
             Name = name;
@@ -37,8 +39,9 @@ namespace Talamoana.Domain.Core.Items.Base
             WeaponStats = weaponStats;
             ShieldStats = shieldStats;
             AttributeRequirements = attrRequirements;
-            Tags = tags.ToList().AsReadOnly();
-            Implicits = implicits.ToList().AsReadOnly();
+            Tags = tags.ToList();
+            Implicits = implicits;
+            ImageUrl = $"http://web.poecdn.com/image/{imageUrl.Replace(".dds", ".png")}";
         }
     }
 }

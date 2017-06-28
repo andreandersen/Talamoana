@@ -7,6 +7,9 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
 {
     public interface ICraftingStrategy
     {
-        IReadOnlyDictionary<Type, int> Execute(Item item, IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues, CancellationToken ct);
+        Dictionary<Type, int> Execute(Item item, Dictionary<string, Dictionary<Stat, int>> desiredModGroupValues, CancellationToken ct);
+
+        event EventHandler<RolledEventArgs> OnRolled;
+        event EventHandler<RolledEventArgs> OnGoalReach;
     }
 }

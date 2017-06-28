@@ -1,28 +1,29 @@
-﻿using Newtonsoft.Json;
+﻿using Jil;
+using System.Collections.Generic;
 
 namespace Talamoana.Domain.Core.Stash
 {
     public class Stash
     {
-        [JsonProperty("accountName")]
+        [JilDirective("accountName")]
         public string AccountName { get; set; }
 
-        [JsonProperty("lastCharacterName")]
+        [JilDirective("lastCharacterName")]
         public string LastCharacterName { get; set; }
 
-        [JsonProperty("id")]
+        [JilDirective("id")]
         public string Id { get; set; }
 
-        [JsonProperty("Stash")]
+        [JilDirective("stash")]
         public string StashName { get; set; }
 
-        [JsonProperty("stashType")]
+        [JilDirective("stashType")]
         public string StashType { get; set; }
 
-        [JsonProperty("public")]
+        [JilDirective("public")]
         public bool IsPublic { get; set; }
 
-        [JsonProperty("items")]
-        public StashItem[] Items { get; set; }
+        [JilDirective("items")]
+        public List<StashItem> Items { get; set; }
     }
 }

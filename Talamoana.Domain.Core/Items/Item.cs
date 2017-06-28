@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Talamoana.Domain.Core.Items.Base;
 using Talamoana.Domain.Core.Modifiers;
@@ -17,8 +18,12 @@ namespace Talamoana.Domain.Core.Items
     public class Item
     {
         // Explicit modifiers applied to this particular item
-        private List<IMaterializedModifier> _explicits;
-        private List<IMaterializedModifier> _implicits;
+
+        private readonly List<MaterializedModifier> _implicits;
+
+        private string _name = string.Empty;
+
+        private ItemRarity _rarity;
 
         public Item(IBaseItem baseItem, int itemLevel, ItemRarity rarity = ItemRarity.Normal)
         {
@@ -29,31 +34,65 @@ namespace Talamoana.Domain.Core.Items
             ItemLevel = itemLevel;
             Rarity = rarity;
 
-            _explicits = new List<IMaterializedModifier>();
-            _implicits = baseItem.Implicits.Select(p => p.Materialize(p.Stats.ToDictionary(e => e.Stat, e => Convert.ToInt32((e.Min + e.Max) / 2d)))).Cast<IMaterializedModifier>().ToList();
+            Explicits = new List<MaterializedModifier>();
+            _implicits = baseItem.Implicits
+                .Select(p => p.Materialize(
+                    p.Stats.ToDictionary(e => e.Stat, e => Convert.ToInt32((e.Min + e.Max) / 2d)))).ToList();
 
-            Tags = new List<string>(Base.Tags);
+            //Tags = new List<short>(Base.Tags.Select(TagWeight.GetTagIdentifier));
+            //Tags = Base.Tags.ToDictionary(p => TagWeight.GetTagIdentifier(p), _ => new short());
+            Tags = new List<short>(Base.Tags.Select(TagWeight.GetTagIdentifier).ToList());
+
         }
 
-        public Item(IBaseItem baseItem, int itemLevel, ItemRarity rarity, IEnumerable<IMaterializedModifier> implicits,
-            IEnumerable<IMaterializedModifier> explicits, string nameOverride = null)
+        public Item(IBaseItem baseItem, int itemLevel, ItemRarity rarity, List<MaterializedModifier> implicits,
+            List<MaterializedModifier> explicits, string nameOverride = null)
         {
             Base = baseItem;
             ItemLevel = itemLevel;
             Rarity = rarity;
 
-            _explicits = explicits.ToList();
-            _implicits = implicits.ToList();
+            Explicits = new List<MaterializedModifier>(explicits);
+            _implicits = new List<MaterializedModifier>(implicits);
             _name = nameOverride;
         }
-
-        private string _name = string.Empty;
 
         public string Name
         {
             get => DetermineName();
             private set => _name = value;
         }
+
+        public int ItemLevel { get; }
+
+        public bool IsCorrupted { get; private set; }
+
+        public ItemRarity Rarity
+        {
+            get => _rarity;
+            set
+            {
+                if (_rarity == value) return;
+                _name = string.Empty;
+                _rarity = value;
+            }
+        }
+
+        /// <inheritdoc />
+        public IBaseItem Base { get; }
+
+        /// <summary>
+        ///     Explicit modifiers applied to the item
+        /// </summary>
+        /// <seealso cref="MaterializedModifier" />
+        public List<MaterializedModifier> Explicits { get; private set; }
+
+        public IReadOnlyCollection<MaterializedModifier> Implicits => _implicits;
+
+        /// <summary>
+        ///     All the tags that this item has based on the modifiers + base item tags
+        /// </summary>
+        public readonly List<short> Tags;
 
         private string DetermineName()
         {
@@ -78,43 +117,9 @@ namespace Talamoana.Domain.Core.Items
             return _name;
         }
 
-        public int ItemLevel { get; }
-
-        public bool IsCorrupted { get; private set; }
-
-        private ItemRarity _rarity;
-        public ItemRarity Rarity
-        {
-            get => _rarity;
-            set
-            {
-                if (_rarity == value) return;
-                _name = string.Empty;
-                _rarity = value;
-            }
-        }
-
-        /// <inheritdoc />
-        public IBaseItem Base { get; }
-
-        /// <summary>
-        ///     Explicit modifiers applied to the item
-        /// </summary>
-        /// <seealso cref="IMaterializedModifier" />
-        public IReadOnlyList<IMaterializedModifier> Explicits => _explicits;
-
-        public IReadOnlyCollection<IMaterializedModifier> Implicits => _implicits;
-
-        /// <summary>
-        ///     All the tags that this item has based on the modifiers + base item tags
-        /// </summary>
-
-
-        public List<string> Tags { get; private set; }
-
         public void Reset()
         {
-            _explicits.Clear();
+            Explicits.Clear();
             _name = string.Empty;
 
             Rarity = ItemRarity.Normal;
@@ -123,11 +128,11 @@ namespace Talamoana.Domain.Core.Items
 
         public void ClearExplicitModifiers()
         {
-            _explicits = new List<IMaterializedModifier>();
+            Explicits = new List<MaterializedModifier>();
             //Tags = new List<string>(Base.Tags);
-        } 
+        }
 
-        public void AddExplicitModifier(IMaterializedModifier modifier)
+        public void AddExplicitModifier(MaterializedModifier modifier)
         {
             if (IsCorrupted)
                 throw new InvalidOperationException("Item is corrupted");
@@ -136,14 +141,14 @@ namespace Talamoana.Domain.Core.Items
                 modifier.Modifier.GenerationType != GenerationType.Suffix)
                 throw new InvalidOperationException("Invalid modifier type provided");
 
-            if (_explicits.Any(p => p.Modifier.Equals(modifier.Modifier)))
+            if (Explicits.Any(p => p.Modifier.Equals(modifier.Modifier)))
                 throw new ModifierAlreadyInItemException();
 
-            _explicits.Add(modifier);
+            Explicits.Add(modifier);
             //_tags.InsertRange(0, modifier.Modifier.AddsTags);
         }
 
-        public void ReplaceImplicitModifier(IMaterializedModifier modifier)
+        public void ReplaceImplicitModifier(MaterializedModifier modifier)
         {
             if (IsCorrupted)
                 throw new InvalidOperationException("Item is corrupted");

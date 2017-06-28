@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿using Jil;
+using Newtonsoft.Json;
 
 namespace Talamoana.Domain.Core.Stash
 {
     public class Socket
     {
-        [JsonProperty("group")]
+        [JilDirective("group")]
         public int Group { get; set; }
 
-        [JsonProperty("attr")]
+        [JilDirective("attr")]
         public string Attribute { get; set; }
     }
 }

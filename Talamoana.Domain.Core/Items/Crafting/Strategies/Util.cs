@@ -11,7 +11,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
     public static class Util
     {       
         public static bool AllDesiredSatisfied(this Item item,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues) =>
+            Dictionary<string, Dictionary<Stat, int>> desiredModGroupValues) =>
             desiredModGroupValues.All(d =>
             {
                 var itemModMatch = item.Explicits.FirstOrDefault(c => c.Modifier.Group == d.Key);
@@ -19,7 +19,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
             });
 
         public static bool SoFarSoGood(this Item item,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues) =>
+            Dictionary<string, Dictionary<Stat, int>> desiredModGroupValues) =>
             item.Explicits.All(e => desiredModGroupValues.TryGetValue(e.Modifier.Group, out var desired) &&
                                     desired.All(dv => e.Values[dv.Key] > dv.Value));
 
@@ -45,7 +45,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
         }
 
         public static Dictionary<Type, IRandomCraftingAction> DefaultRandomCraftingActions(
-            IReadOnlyList<IModifier> allMods,
+            List<Modifier> allMods,
             IRandomizer random) =>
             new List<IRandomCraftingAction>
             {

@@ -1,49 +1,49 @@
-﻿using Newtonsoft.Json;
+﻿using Jil;
 
 namespace Talamoana.Domain.Core.Stash
 {
     public class SocketedItem
     {
-        [JsonProperty("ilvl")]
+        [JilDirective("ilvl")]
         public int ItemLevel { get; set; }
 
-        [JsonProperty("icon")]
+        [JilDirective("icon")]
         public string IconUrl { get; set; }
 
-        [JsonProperty("support")]
+        [JilDirective("support")]
         public bool IsSupport { get; set; }
 
-        [JsonProperty("id")]
+        [JilDirective("id")]
         public string Id { get; set; }
 
-        [JsonProperty("name")]
+        [JilDirective("name")]
         public string Name { get; set; }
 
-        [JsonProperty("typeLine")]
+        [JilDirective("typeLine")]
         public string TypeLine { get; set; }
 
-        [JsonProperty("corrupted")]
+        [JilDirective("corrupted")]
         public bool IsCorrupted { get; set; }
 
-        [JsonProperty("locketToCharacter")]
+        [JilDirective("locketToCharacter")]
         public bool IsLockedToCharacter { get; set; }
 
-        [JsonProperty("properties")]
+        [JilDirective("properties")]
         public Property[] Properties { get; set; }
 
-        [JsonProperty("additionalProperties")]
+        [JilDirective("additionalProperties")]
         public AdditionalProperty[] AdditionalProperties { get; set; }
 
-        [JsonProperty("requirements")]
+        [JilDirective("requirements")]
         public Requirement[] Requirements { get; set; }
 
-        [JsonProperty("explicitMods")]
+        [JilDirective("explicitMods")]
         public string[] ExplicitMods { get; set; }
 
-        [JsonProperty("socket")]
+        [JilDirective("socket")]
         public int Socket { get; set; }
 
-        [JsonProperty("colour")]
+        [JilDirective("colour")]
         public string Colour { get; set; }
     }
 }

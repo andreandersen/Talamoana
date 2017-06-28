@@ -13,11 +13,11 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
     public class AltCraftingStrategy : ICraftingStrategy
     {
         private readonly Dictionary<Type, IRandomCraftingAction> _actions;
-        private readonly IReadOnlyList<IModifier> _allMods;
+        private readonly List<Modifier> _allMods;
         private int _totalRolls = 0;
         private Stopwatch _stopwatch;
         
-        public AltCraftingStrategy(IReadOnlyList<IModifier> allMods, IRandomizer randomizer = null)
+        public AltCraftingStrategy(List<Modifier> allMods, IRandomizer randomizer = null)
         {
             var random = randomizer ?? new PseudoRandom();
             _actions = Util.DefaultRandomCraftingActions(allMods, random);
@@ -26,7 +26,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
         }
 
         /// <inheritdoc />
-        public IReadOnlyDictionary<Type, int> Execute(Item item, IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues, CancellationToken ct)
+        public Dictionary<Type, int> Execute(Item item, Dictionary<string, Dictionary<Stat, int>> desiredModGroupValues, CancellationToken ct)
         {
             // Determine if this is possible based on the mod pool and the weights
             var rollableMods = _allMods.GetRollableExplicits(item);
@@ -42,12 +42,13 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
             PrepItem(item, cost);
             AttemptReachGoal(item, cost, desiredModGroupValues, ct);
 
-            PrintStatus(item, cost, desiredModGroupValues, true);
+            //PrintStatus(item, cost, desiredModGroupValues, true);
+            OnGoalReach?.Invoke(this, new RolledEventArgs(cost, item, _stopwatch.Elapsed));
             return cost;
         }
 
         private void AttemptReachGoal(Item item, Dictionary<Type, int> cost,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues, CancellationToken ct)
+            Dictionary<string, Dictionary<Stat, int>> desiredModGroupValues, CancellationToken ct)
         {
             while (!ct.IsCancellationRequested)
             {
@@ -57,32 +58,51 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
                 if (item.Rarity == ItemRarity.Normal)
                     Roll<TransmutationOrb>();
 
-                if (item.AllDesiredSatisfied(desiredModGroupValues)) break;
-                if (!item.SoFarSoGood(desiredModGroupValues))
+                if (!IsSatisfactory())
                     Roll<AlterationOrb>();
 
-                if (item.AllDesiredSatisfied(desiredModGroupValues)) break;
-                if (!item.SoFarSoGood(desiredModGroupValues)) continue;
+                if (!IsSatisfactory()) continue;
+
                 if (item.Explicits.Count == 1)
                     Roll<AugmentationOrb>();
 
-                if (item.AllDesiredSatisfied(desiredModGroupValues)) break;
-                if (!item.SoFarSoGood(desiredModGroupValues)) continue;
+                if (!IsSatisfactory()) continue;
 
                 Roll<RegalOrb>();
 
-                if (item.AllDesiredSatisfied(desiredModGroupValues)) break;
-                if (!item.SoFarSoGood(desiredModGroupValues)) continue;
+                if (!IsSatisfactory()) continue;
 
-                while (item.Explicits.Count < Math.Min(6, desiredModGroupValues.Count))
+                while (item.Explicits.Count < Math.Min(6, desiredModGroupValues.Count) && IsSatisfactory())
                 {
                     Roll<ExaltedOrb>();
-
-                    if (!item.SoFarSoGood(desiredModGroupValues) ||
-                        item.AllDesiredSatisfied(desiredModGroupValues)) break;
                 }
 
-                if (item.AllDesiredSatisfied(desiredModGroupValues)) break;
+                if (IsSatisfactory()) break;
+            }
+
+            bool IsSatisfactory()
+            {
+                if (desiredModGroupValues.Count > item.Explicits.Count)
+                {
+                    for (int i = 0; i < item.Explicits.Count; i++)
+                    {
+                        var im = item.Explicits[i];
+                        if (desiredModGroupValues.TryGetValue(im.Modifier.Group, out var dm))
+                        {
+                            foreach (var d in dm)
+                            {
+                                if (im.Values[d.Key] < d.Value)
+                                    return false;
+                            }
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                else return true;
             }
 
             void Roll<T>()
@@ -91,7 +111,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
                 _actions.Apply<T>(item);
                 cost.Increment<T>();
 
-                PrintStatus(item, cost, desiredModGroupValues);
+                OnRolled?.Invoke(this, new RolledEventArgs(cost, item, _stopwatch.Elapsed));
             }
         }
 
@@ -107,41 +127,7 @@ namespace Talamoana.Domain.Core.Items.Crafting.Strategies
                 .Increment<TransmutationOrb>();
         }
 
-        private int _i;
-        private void PrintStatus(Item item, Dictionary<Type, int> cost,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IStat, int>> desiredModGroupValues, bool force = false)
-        {
-            return;
-            if (++_i % 100 != 0 && !force) return;
-            _i = 0;
-
-            Console.SetCursorPosition(0, 0);
-            Console.CursorVisible = false;
-            cost.ToList().ForEach(c => Console.WriteLine($"{c.Key.Name,-30} {c.Value:###,###}".PadRight(Console.WindowWidth - 4)));
-
-            Console.SetCursorPosition(0, 10);
-
-            var col1 = desiredModGroupValues.OrderBy(c => c.Key)
-                .Select(c => $"{c.Key,-25} ({string.Join(",", c.Value.Select(e => e.Value))})").ToList();
-
-            var col2 = item.Explicits.OrderBy(c => c.Modifier.Group).Select(c => $"{c.Modifier.Id,-25} ({string.Join(",", c.Values.Select(e => e.Value))})").ToList();
-
-            col1.Insert(0, "--------------------------------------");
-            col2.Insert(0, "--------------------------------------");
-
-            col1.Insert(0, "Desired result");
-            col2.Insert(0, "Outcome");
-
-            var p =
-                from idx in Enumerable.Range(0, 6)
-                let c1 = col1.ElementAtOrDefault(idx) ?? ""
-                let c2 = col2.ElementAtOrDefault(idx) ?? ""
-                select $"{c1,-40} {c2}".PadRight(Console.WindowWidth - 1);
-
-            Console.WriteLine(string.Join(Environment.NewLine, p));
-
-            Console.WriteLine(
-                $"\r\n\r\nRolls per second: {(_totalRolls / _stopwatch.Elapsed.TotalSeconds),-10:###,###}");
-        }
+        public event EventHandler<RolledEventArgs> OnRolled;
+        public event EventHandler<RolledEventArgs> OnGoalReach;
     }
 }

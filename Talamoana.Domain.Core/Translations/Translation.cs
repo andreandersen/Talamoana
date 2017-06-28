@@ -5,13 +5,13 @@ namespace Talamoana.Domain.Core.Translations
 {
     public sealed class Translation
     {
-        public IReadOnlyList<string> StatIds { get; }
-        public IReadOnlyList<TranslationString> Translations { get; }
+        public List<string> StatIds { get; }
+        public List<TranslationString> Translations { get; }
 
-        public Translation(IEnumerable<string> ids, IEnumerable<TranslationString> translations)
+        public Translation(List<string> ids, List<TranslationString> translations)
         {
-            StatIds = ids.ToList().AsReadOnly();
-            Translations = translations.ToList().AsReadOnly();
+            StatIds = ids;
+            Translations = translations;
         }
     }
 }

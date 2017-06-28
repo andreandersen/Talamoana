@@ -17,13 +17,13 @@ namespace Talamoana.Domain.Core.Modifiers
             _statsIndex = statsIndex;
         }
 
-        public JsonModsReader(IStatsDataReader statsReader, string sourceFile = "Data\\mods.json")
+        public JsonModsReader(StatsDataReader statsReader, string sourceFile = "Data\\mods.json")
         {
             _file = sourceFile;
             _statsIndex = new StatsIndex(statsReader);
         }
 
-        public IEnumerable<IModifier> Read()
+        public List<Modifier> Read()
         {
             var json = File.ReadAllText(_file);
             var mods = JsonConvert.DeserializeObject<Dictionary<string, ModsObject>>(json);
@@ -46,7 +46,7 @@ namespace Talamoana.Domain.Core.Modifiers
                 
                 return new Modifier(mod.Key, v.name, v.domain, v.generation_type, stats, v.adds_tags,
                     v.is_essence_only, v.group, v.required_level, spawnTags, genWeights);
-            });
+            }).ToList<Modifier>();
         }
         
         #pragma warning disable 649
