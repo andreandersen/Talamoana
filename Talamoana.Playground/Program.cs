@@ -15,8 +15,6 @@ namespace Talamoana.Playground
 {
     internal class Program
     {
-
-        static int print_i = 0;
         static int total = 100;
         static int completed = 0;
         static int concurrency = Environment.ProcessorCount;
